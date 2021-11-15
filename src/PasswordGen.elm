@@ -1,4 +1,4 @@
-module PasswordGen exposing (main)
+port module PasswordGen exposing (main)
 
 import Browser
 import Html exposing (Html, button, div, fieldset, form, input, label, legend, span, text)
@@ -63,6 +63,7 @@ type Msg
     | ToggleUseAdditionalChars
     | ToggleUseNumbers
     | ToggleShowPassword
+    | CopyPassword
 
 
 
@@ -84,7 +85,9 @@ subscriptions : Model -> Sub msg
 subscriptions model =
     Sub.none
 
+-- PORTS
 
+port copyPasswordToClipboard : String -> Cmd msg
 
 -- UPDATE
 
@@ -146,6 +149,15 @@ update msg model =
             in
             ( { model | passwordOptions = newPasswordOptions }, Cmd.none )
 
+        CopyPassword ->
+            case model.password of
+                Just password ->
+                    (model, copyPasswordToClipboard password)
+                Nothing ->
+                    (model, copyPasswordToClipboard "")
+
+
+
 
 effectiveListOfPossibleValues : PasswordOptions -> List Char
 effectiveListOfPossibleValues passwordOptions =
@@ -195,7 +207,9 @@ view model =
             Debug.log (Maybe.withDefault "hatul!" model.password)
     in
     div [ class "pure-g" ]
-        [ div [ class "pure-u-1-3" ]
+        [
+        div [class "pure-u-1-6" ][]
+        ,div [ class "pure-u-1-4" ]
             [ form [ class "pure-form pure-form-stacked", onSubmit OnSubmit ]
                 [ fieldset []
                     [ legend []
@@ -234,7 +248,7 @@ view model =
                     ]
                 ]
             ]
-        , div [ class "pure-u-2-3" ] [ displayPassword model.passwordOptions.showPassword model.password ]
+        , div [ class "pure-u-1-4" ] [ displayPassword model.passwordOptions.showPassword model.password ]
         ]
 
 
@@ -243,7 +257,7 @@ displayPassword showPassword possiblePassword =
     case possiblePassword of
         Just password ->
             div []
-                [ label [ class "pure-checkbok", for "show-password" ]
+                [ label [ class "pure-checkbox", for "show-password" ]
                     [ input [ id "how-password", type_ "checkbox", onClick ToggleShowPassword ][]
                     ]
                     ,
@@ -251,9 +265,7 @@ displayPassword showPassword possiblePassword =
                         input [type_ "text", value password, disabled True][]
                     else
                         input [type_ "password", value password, disabled True][]
+                    , button [onClick CopyPassword ] [ text "copy password!"]
                 ]
-
-        --input [type_ "password", value password] []
-        --text ("here is the password: " ++ password)
         Nothing ->
             text "still no password"

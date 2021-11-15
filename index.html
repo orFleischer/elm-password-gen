@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>Elm Password Generator</title>
     <script type="text/javascript" src="passwordGen.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js" ></script>
     <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.1/build/base-min.css">
     <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css"
         integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
@@ -20,6 +21,10 @@
     var app = Elm.PasswordGen.init({
         node: document.getElementById('passwordGen'),
         flags: null
+    });
+
+    app.ports.copyPasswordToClipboard.subscribe(function(password) {
+        navigator.clipboard.writeText(password);
     });
 
 </script>
