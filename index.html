@@ -27,6 +27,10 @@
         navigator.clipboard.writeText(password);
     });
 
+    app.ports.resetPage.subscribe(() => {
+        window.location.reload();
+    });
+
 </script>
 
 </html>

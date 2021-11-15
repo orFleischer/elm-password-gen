@@ -2,9 +2,10 @@ port module PasswordGen exposing (main)
 
 import Browser
 import Html exposing (Html, button, div, fieldset, form, input, label, legend, span, text)
-import Html.Attributes as Attribute exposing (class, disabled, for, id, placeholder, required, style, type_, value)
+import Html.Attributes as Attribute exposing (checked, class, disabled, for, id, placeholder, required, selected, style, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Random
+import Time
 
 
 
@@ -44,6 +45,9 @@ type alias Model =
     { password : Maybe String
     , passwordLength : Int
     , passwordOptions : PasswordOptions
+    , submittedPassword : Bool
+    , startedClock : Bool
+    , clockInSeconds : Int
     }
 
 
@@ -64,6 +68,8 @@ type Msg
     | ToggleUseNumbers
     | ToggleShowPassword
     | CopyPassword
+    | Tick Time.Posix
+    | Reset
 
 
 
@@ -72,7 +78,7 @@ type Msg
 
 init : () -> ( Model, Cmd msg )
 init _ =
-    ( Model Nothing 8 (PasswordOptions False False False False)
+    ( Model Nothing 8 (PasswordOptions False False False False) False False 0
     , Cmd.none
     )
 
@@ -81,14 +87,18 @@ init _ =
 -- SUBSCRIPTION
 
 
-subscriptions : Model -> Sub msg
+subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    if (model.startedClock) then
+        Time.every 1000 Tick
+    else
+        Sub.none
 
 -- PORTS
 
 port copyPasswordToClipboard : String -> Cmd msg
 
+port resetPage : () -> Cmd msg
 -- UPDATE
 
 
@@ -101,7 +111,7 @@ update msg model =
                 uniformValuesGenerator =
                     getRandomGenerator model.passwordLength (effectiveListOfPossibleValues model.passwordOptions)
             in
-            ( model, Random.generate GeneratedPassword uniformValuesGenerator )
+            ( {model | startedClock = True, clockInSeconds = 0 }, Random.generate GeneratedPassword uniformValuesGenerator )
 
         GeneratedPassword selectedPasswordChars ->
             ( { model | password = selectedPasswordChars |> List.map String.fromChar |> String.concat |> Just }, Cmd.none )
@@ -155,6 +165,15 @@ update msg model =
                     (model, copyPasswordToClipboard password)
                 Nothing ->
                     (model, copyPasswordToClipboard "")
+
+        Tick posix ->
+            if (model.clockInSeconds >= 20) then
+                update Reset model
+             else
+                ({model | clockInSeconds = model.clockInSeconds + 1}, Cmd.none)
+
+        Reset ->
+            (model, resetPage ())
 
 
 
@@ -229,17 +248,17 @@ view model =
                     , span [ class "pure-form-message" ]
                         [ text "This is a required field." ]
                     , label [ class "pure-checkbox", for "use-uppercase" ]
-                        [ input [ id "use-uppercase", type_ "checkbox", onClick ToggleUseUppercase ]
+                        [ input [ id "use-uppercase", type_ "checkbox", onClick ToggleUseUppercase, checked model.passwordOptions.useUppercase]
                             []
                         , text "also use uppercase letters"
                         ]
                     , label [ class "pure-checkbox", for "use-numbers" ]
-                        [ input [ id "use-numbers", type_ "checkbox", onClick ToggleUseNumbers ]
+                        [ input [ id "use-numbers", type_ "checkbox", onClick ToggleUseNumbers, checked model.passwordOptions.useNumbers ]
                             []
                         , text "also use numbers"
                         ]
                     , label [ class "pure-checkbox", for "additional-characters" ]
-                        [ input [ id "additional-characters", type_ "checkbox", onClick ToggleUseAdditionalChars ]
+                        [ input [ id "additional-characters", type_ "checkbox", onClick ToggleUseAdditionalChars, checked model.passwordOptions.useAdditionalChars]
                             []
                         , text "use additional ASCII characters"
                         ]
@@ -249,6 +268,10 @@ view model =
                 ]
             ]
         , div [ class "pure-u-1-4" ] [ displayPassword model.passwordOptions.showPassword model.password ]
+        , if (model.startedClock) then
+            text (String.fromInt model.clockInSeconds)
+          else
+            text ""
         ]
 
 
